@@ -23,10 +23,18 @@ struct TOKEN {
 // 現在のトークン
 TOKEN *CurrentToken;
 
+//入力プログラム
+char *user_input;
+
 //エラー報告用
-void error(char *fmt, ...) {
+void error_at(char *loc, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, " ");
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -46,7 +54,7 @@ bool consume(char op) {
 //それ以外の場合はエラーを報告する
 void expect(char op) {
   if (CurrentToken->kind != TOKEN_RESERVED || CurrentToken->str[0] != op) {
-    error("'%c'ではありません", op);
+    error_at(CurrentToken->str, "'%c'ではありません", op);
   }
   CurrentToken = CurrentToken->next;
 }
@@ -55,7 +63,7 @@ void expect(char op) {
 //それ以外の場合はエラーを報告する
 int expect_number() {
   if (CurrentToken->kind != TOKEN_NUM) {
-    error("数ではありません");
+    error_at(CurrentToken->str, "数ではありません");
   }
   int val = CurrentToken->val;
   CurrentToken = CurrentToken->next;
@@ -97,7 +105,7 @@ TOKEN *tokenize(char *p) {
       continue;
     }
 
-    error("トークナイズできません");
+    error_at(p, "トークナイズできません");
   }
 
   new_token(TOKEN_EOF, current, p);
@@ -106,9 +114,12 @@ TOKEN *tokenize(char *p) {
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    fprintf(stderr, "引数の数が正しくありません");
+    fprintf(stderr, "引数の数が正しくありません\n");
     return 1;
   }
+
+  //入力を保持する
+  user_input = argv[1];
 
   //トークナイズする
   CurrentToken = tokenize(argv[1]);
