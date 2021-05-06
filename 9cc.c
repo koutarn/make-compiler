@@ -56,6 +56,7 @@ NODE *new_node(NODE_KIND kind, NODE *lhs, NODE *rhs);
 NODE *new_node_num(int val);
 NODE *primary();
 NODE *mul();
+NODE *unary();
 NODE *expr();
 void gen(NODE *node);
 int main(int argc, char **argv);
@@ -181,16 +182,27 @@ NODE *expr() {
 }
 
 NODE *mul() {
-  NODE *node = primary();
+  NODE *node = unary();
   for (;;) {
     if (consume('*')) {
-      node = new_node(NODE_MUL, node, primary());
+      node = new_node(NODE_MUL, node, unary());
     } else if (consume('/')) {
-      node = new_node(NODE_DIV, node, primary());
+      node = new_node(NODE_DIV, node, unary());
     } else {
       return node;
     }
   }
+}
+
+NODE *unary() {
+  if (consume('+')) {
+    return primary();
+  }
+  if (consume('-')) {
+    return new_node(NODE_SUB, new_node_num(0), primary());
+  }
+
+  return primary();
 }
 
 NODE *primary() {
