@@ -1,74 +1,10 @@
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// トークンの種類
-typedef enum {
-  TOKEN_RESERVED, //記号
-  TOKEN_NUM,      //整数トークン
-  TOKEN_EOF,      //入力の終り
-} TOKEN_KIND;
-
-typedef struct TOKEN TOKEN;
-struct TOKEN {
-  TOKEN_KIND kind; //トークンの型
-  TOKEN *next;     //次の入力トークン
-  int val;         // TOKEN_NUMの場合の数値
-  char *str;       //トークンの文字列
-  int len;         //トークンの長さ
-};
-
-//抽象構文木のノードの種類
-typedef enum {
-  NODE_EQUAL,     //==
-  NODE_NOT_EQUAL, //!=
-  NODE_LT,        // <
-  NODE_LE,        // <=
-  NODE_ADD,       // +
-  NODE_SUB,       // -
-  NODE_MUL,       // *
-  NODE_DIV,       // /
-  NODE_NUM,       // 整数
-} NODE_KIND;
-
-//構文木のノード
-typedef struct NODE NODE;
-struct NODE {
-  NODE_KIND kind; //ノードの種類
-  NODE *lhs;      //左辺
-  NODE *rhs;      //右辺
-  int val;        //数値
-};
+#include "9cc.h"
 
 // 現在のトークン
 TOKEN *CurrentToken;
 
 //入力プログラム
 char *user_input;
-
-// prototype
-void error_at(char *loc, char *fmt, ...);
-bool consume(char *op);
-void expect(char *op);
-int expect_number();
-bool at_eof();
-TOKEN *new_token(TOKEN_KIND kind, TOKEN *current, char *str, int len);
-bool startswith(char *p, char *q);
-TOKEN *tokenize(char *p);
-NODE *new_node(NODE_KIND kind, NODE *lhs, NODE *rhs);
-NODE *new_node_num(int val);
-NODE *expr();
-NODE *equality();
-NODE *relational();
-NODE *add();
-NODE *mul();
-NODE *unary();
-NODE *primary();
-void gen(NODE *node);
-int main(int argc, char **argv);
 
 //エラー報告用
 void error_at(char *loc, char *fmt, ...) {
@@ -190,7 +126,6 @@ NODE *new_node_num(int val) {
   node->val = val;
   return node;
 }
-
 //==========================
 //再帰下降構文解析用関数郡
 //==========================
@@ -273,83 +208,4 @@ NODE *primary() {
 
   //そうでなければ数値なはず
   return new_node_num(expect_number());
-}
-
-void gen(NODE *node) {
-  if (node->kind == NODE_NUM) {
-    printf("  push %d\n", node->val);
-    return;
-  }
-
-  gen(node->lhs);
-  gen(node->rhs);
-
-  printf("  pop rdi\n");
-  printf("  pop rax\n");
-
-  switch (node->kind) {
-  case NODE_ADD:
-    printf("  add rax, rdi\n");
-    break;
-  case NODE_SUB:
-    printf("  sub rax, rdi\n");
-    break;
-  case NODE_MUL:
-    printf("  imul rax, rdi\n");
-    break;
-  case NODE_DIV:
-    printf("  cqo\n");
-    printf("  idiv rdi\n");
-    break;
-  case NODE_EQUAL:
-    printf("  cmp rax,rdi\n");
-    printf("  sete al\n");
-    printf("  movzb rax,al\n");
-    break;
-  case NODE_NOT_EQUAL:
-    printf("  cmp rax,rdi\n");
-    printf("  setne al\n");
-    printf("  movzb rax,al\n");
-    break;
-  case NODE_LT:
-    printf("  cmp rax,rdi\n");
-    printf("  setl al\n");
-    printf("  movzb rax,al\n");
-    break;
-  case NODE_LE:
-    printf("  cmp rax,rdi\n");
-    printf("  setle al\n");
-    printf("  movzb rax,al\n");
-    break;
-  case NODE_NUM:
-    break;
-  }
-
-  printf("  push rax\n");
-}
-
-int main(int argc, char **argv) {
-  if (argc != 2) {
-    fprintf(stderr, "引数の数が正しくありません\n");
-    return 1;
-  }
-
-  //トークナイズしてパースする
-  user_input = argv[1];
-  CurrentToken = tokenize(argv[1]);
-  NODE *node = expr();
-
-  //アセンブリの前半部分を出力
-  printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
-  printf("main:\n");
-
-  //抽象構文木を下りながらコードを生成
-  gen(node);
-
-  //スタックトップに式全体の値が残っているはずなので
-  //それをRAXにロードして関数の戻り値とする
-  printf("  pop rax\n");
-  printf("  ret\n");
-  return 0;
 }
