@@ -10,6 +10,7 @@
 // トークンの種類
 typedef enum {
   TOKEN_RESERVED, //記号
+  TOKEN_IDENT,    //識別子
   TOKEN_NUM,      //整数トークン
   TOKEN_EOF,      //入力の終り
 } TOKEN_KIND;

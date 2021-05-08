@@ -83,6 +83,11 @@ TOKEN *tokenize(char *p) {
       continue;
     }
 
+    if ('a' <= *p && 'z' >= *p) {
+      current = new_token(TOKEN_IDENT, current, p++, 1);
+      continue;
+    }
+
     if (startswith(p, "==") || startswith(p, "!=") || startswith(p, "<=") ||
         startswith(p, ">=")) {
       current = new_token(TOKEN_RESERVED, current, p, 2);
