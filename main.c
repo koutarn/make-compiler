@@ -9,19 +9,28 @@ int main(int argc, char **argv) {
   //トークナイズしてパースする
   user_input = argv[1];
   CurrentToken = tokenize(argv[1]);
-  NODE *node = expr();
+  program();
 
   //アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
   printf(".globl main\n");
   printf("main:\n");
 
-  //抽象構文木を下りながらコードを生成
-  gen(node);
+  // プロローグ
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, 208\n");
 
-  //スタックトップに式全体の値が残っているはずなので
-  //それをRAXにロードして関数の戻り値とする
-  printf("  pop rax\n");
+  //抽象構文木を下りながらコードを生成
+  for (int i = 0; code[i]; i++) {
+    gen(code[i]);
+
+    printf("  pop rax\n");
+  }
+
+  //エピローグ
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
   printf("  ret\n");
   return 0;
 }

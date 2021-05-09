@@ -34,6 +34,8 @@ typedef enum {
   NODE_SUB,       // -
   NODE_MUL,       // *
   NODE_DIV,       // /
+  NODE_ASSIGN,    // =
+  NODE_LVAR,      // ローカル変数
   NODE_NUM,       // 整数
 } NODE_KIND;
 
@@ -44,6 +46,7 @@ struct NODE {
   NODE *lhs;      //左辺
   NODE *rhs;      //右辺
   int val;        //数値
+  int offset; //ローカル変数のベースポインタからのオフセット値
 };
 
 // prototype
@@ -57,13 +60,18 @@ bool startswith(char *p, char *q);
 TOKEN *tokenize(char *p);
 NODE *new_node(NODE_KIND kind, NODE *lhs, NODE *rhs);
 NODE *new_node_num(int val);
+
+void program();
+NODE *stmt();
 NODE *expr();
+NODE *assign();
 NODE *equality();
 NODE *relational();
 NODE *add();
 NODE *mul();
 NODE *unary();
 NODE *primary();
+void gen_lval(NODE *node);
 void gen(NODE *node);
 int main(int argc, char **argv);
 
@@ -72,3 +80,6 @@ extern TOKEN *CurrentToken;
 
 //入力プログラム
 extern char *user_input;
+
+//
+extern NODE *code[100];

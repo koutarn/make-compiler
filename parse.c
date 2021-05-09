@@ -6,6 +6,9 @@ TOKEN *CurrentToken;
 //入力プログラム
 char *user_input;
 
+//ノード
+NODE *code[100];
+
 //エラー報告用
 void error_at(char *loc, char *fmt, ...) {
   va_list ap;
@@ -31,6 +34,15 @@ bool consume(char *op) {
   }
   CurrentToken = CurrentToken->next;
   return true;
+}
+
+TOKEN *consume_ident() {
+  if (CurrentToken->kind != TOKEN_IDENT) {
+    return NULL;
+  }
+  TOKEN *token = CurrentToken;
+  CurrentToken = CurrentToken->next;
+  return token;
 }
 
 //次のトークンが期待している記号の時には、トークンを1つ読み進めて
@@ -95,7 +107,7 @@ TOKEN *tokenize(char *p) {
       continue;
     }
 
-    if (strchr("+-*/()<>", *p)) {
+    if (strchr("+-*/()<>;", *p)) {
       current = new_token(TOKEN_RESERVED, current, p++, 1);
       continue;
     }
@@ -131,10 +143,33 @@ NODE *new_node_num(int val) {
   node->val = val;
   return node;
 }
+
 //==========================
 //再帰下降構文解析用関数郡
 //==========================
-NODE *expr() { return equality(); }
+void program() {
+  int i = 0;
+  while (!at_eof()) {
+    code[i++] = stmt();
+  }
+  code[i] = NULL;
+}
+
+NODE *stmt() {
+  NODE *node = expr();
+  expect(";");
+  return node;
+}
+
+NODE *expr() { return assign(); }
+
+NODE *assign() {
+  NODE *node = equality();
+  if (consume("=")) {
+    node = new_node(NODE_ASSIGN, node, assign());
+  }
+  return node;
+}
 
 NODE *equality() {
   NODE *node = relational();
@@ -208,6 +243,14 @@ NODE *primary() {
   if (consume("(")) {
     NODE *node = expr();
     expect(")");
+    return node;
+  }
+
+  TOKEN *token = consume_ident();
+  if (token) {
+    NODE *node = calloc(1, sizeof(NODE));
+    node->kind = NODE_LVAR;
+    node->offset = (token->str[0] - 'a' + 1) * 8;
     return node;
   }
 
